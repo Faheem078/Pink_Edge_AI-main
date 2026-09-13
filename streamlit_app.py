@@ -538,6 +538,8 @@ def init_state():
         "inference_latency": 9.4, "bi_rads_selected": None, "acr_density_selected": None,
         "cache_saved": False,
         "lhv_decisions": {}, "show_override_reason": {},
+        "voice_enabled": True,
+        "helpya_total_sessions": 0, "helpya_successful_diagnosis": 0, "helpya_escalations": 0,
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -1070,6 +1072,65 @@ def render_hospital_hub():
                     st.session_state.show_override_reason[alert_id] = False
 
             st.markdown("---")
+
+
+# ============================================================
+# VOICE MESSAGE LIBRARY  (module-level — used by render_cloud_sync)
+# ============================================================
+VOICE_MESSAGES = {
+    "rescan": {
+        "en": "Please rescan the patient. The image quality is insufficient for diagnosis.",
+        "ur": "براہ کرم مریض کو دوبارہ اسکین کریں۔ تصویر کا معیار تشخیص کے لیے ناکافی ہے۔",
+        "pa": "ਮਰੀਜ਼ ਨੂੰ ਦੁਬਾਰਾ ਸਕੈਨ ਕਰੋ। ਚਿੱਤਰ ਦੀ ਗੁਣਵੱਤਾ ਨਿਦਾਨ ਲਈ ਅਢੁਕਵੀਂ ਹੈ।",
+    },
+    "escalate": {
+        "en": "This case requires immediate escalation to a senior radiologist.",
+        "ur": "اس کیس کو فوری طور پر سینئر ریڈیولوجسٹ کے پاس بھیجنا ضروری ہے۔",
+        "pa": "ਇਸ ਕੇਸ ਨੂੰ ਸੀਨੀਅਰ ਰੇਡੀਓਲੋਜਿਸਟ ਕੋਲ ਤੁਰੰਤ ਭੇਜਣਾ ਜ਼ਰੂਰੀ ਹੈ।",
+    },
+    "missing_field": {
+        "en": "Some required patient information fields are missing. Please complete the form.",
+        "ur": "کچھ ضروری مریض کی معلومات موجود نہیں ہیں۔ براہ کرم فارم مکمل کریں۔",
+        "pa": "ਕੁਝ ਲੋੜੀਂਦੇ ਮਰੀਜ਼ ਦੇ ਵੇਰਵੇ ਗੁੰਮ ਹਨ। ਕਿਰਪਾ ਕਰਕੇ ਫਾਰਮ ਭਰੋ।",
+    },
+    "success": {
+        "en": "Diagnosis complete. Results have been saved and are ready for review.",
+        "ur": "تشخیص مکمل ہو گئی۔ نتائج محفوظ کر لیے گئے ہیں اور جائزے کے لیے تیار ہیں۔",
+        "pa": "ਨਿਦਾਨ ਪੂਰਾ ਹੋ ਗਿਆ। ਨਤੀਜੇ ਸੁਰੱਖਿਅਤ ਕੀਤੇ ਗਏ ਹਨ ਅਤੇ ਸਮੀਖਿਆ ਲਈ ਤਿਆਰ ਹਨ।",
+    },
+    "sync_success": {
+        "en": "Data successfully synced to the cloud. All reports are up to date.",
+        "ur": "ڈیٹا کامیابی سے کلاؤڈ میں محفوظ کر دیا گیا۔ تمام رپورٹس اپ ٹو ڈیٹ ہیں۔",
+        "pa": "ਡੇਟਾ ਸਫਲਤਾਪੂਰਵਕ ਕਲਾਊਡ ਨਾਲ ਸਿੰਕ ਕੀਤਾ ਗਿਆ।",
+    },
+    "network_error": {
+        "en": "Network connection lost. Operating in fully offline mode.",
+        "ur": "نیٹ ورک کنکشن ختم ہو گیا۔ مکمل آف لائن موڈ میں کام جاری ہے۔",
+        "pa": "ਨੈੱਟਵਰਕ ਕੁਨੈਕਸ਼ਨ ਖਤਮ ਹੋ ਗਿਆ। ਪੂਰੀ ਤਰ੍ਹਾਂ ਆਫਲਾਈਨ ਮੋਡ ਵਿੱਚ ਕੰਮ ਜਾਰੀ ਹੈ।",
+    },
+}
+
+
+def play_voice_message(message_key: str, lang: str = "en"):
+    """
+    Returns synthesized audio bytes for the given message key and language.
+    On Streamlit Cloud, gTTS is not guaranteed — falls back to None gracefully.
+    """
+    text = VOICE_MESSAGES.get(message_key, {}).get(lang, "")
+    if not text:
+        return None
+    try:
+        # pyrefly: ignore [missing-import]
+        from gtts import gTTS
+        import io
+        tts = gTTS(text=text, lang=lang if lang in ("en", "ur") else "en")
+        buf = io.BytesIO()
+        tts.write_to_fp(buf)
+        buf.seek(0)
+        return buf.read()
+    except Exception:
+        # gTTS not installed or network unavailable — silent fallback
+        return None
 
 
 # ============================================================
