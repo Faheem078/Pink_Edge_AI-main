@@ -65,11 +65,18 @@ All three modalities check for a Roboflow API key and use it if present:
 
 ## Project layout
 
-```
-README.md                 — this file
-Start.bat / Start_Web.bat   — launchers: cd into App/, install deps, run — nothing else lives at this level
-
-App/                     — everything else: the app, its models, docs, tests, and reference material
+GUI.py                    — Tkinter desktop app: UI + local SQLite cache + reports + fallbacks
+streamlit_app.py           — Streamlit web app (responsive) — same logic, imported from GUI.py
+auth_manager.py             — Multi-tenant biometric / PIN access control module (LHW vs. Senior Radiologist RBAC)
+test_auth.py                — Automated test suite for RBAC PIN authentication and permissions
+dicom_anonymizer.py         — Offline DICOM anonymization & Hexadecimal Privacy Hashing module (HIPAA/GDPR compliant)
+test_anonymizer.py          — Automated test suite for DICOM PII stripping and hex hashing
+inference.py                — model loading + prediction dispatch for all three modalities
+offline_cv.py                — the offline pixel-diff heuristic (no model, no internet, ever);
+                                  run directly (`python offline_cv.py`) to see its measured accuracy
+requirements.txt            — Python dependencies (shared by both editions)
+Start.bat / Start_Web.bat    — one-click installer + launcher, desktop / web
+pink_edge_cache.db           — local report cache (SQLite; created on first "Save to Cache")
   GUI.py                    — Tkinter desktop app: UI + local SQLite cache + reports + fallbacks
   streamlit_app.py           — Streamlit web app (responsive) — same logic, imported from GUI.py
   inference.py                — model loading + prediction dispatch for all three modalities
@@ -173,5 +180,3 @@ credentials are used here either). `streamlit_app.py` is a fresh, responsive reb
 original `pink_edge.py`) that reuses `GUI.py`'s shared logic and the real model backends instead of
 the original's all-simulated scenario pickers. An Android build was discussed but deferred in favor
 of these desktop/web builds.
-#   P i n k _ E d g e _ A I - m a i n  
- 
