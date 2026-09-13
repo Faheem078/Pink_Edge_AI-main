@@ -101,6 +101,20 @@ def play_voice_message(message_key: str, lang: str):
     return None
 
 
+def combine_icon_and_text(icon: str, text: str) -> str:
+    """
+    Joins a status icon with its text without duplicating the icon —
+    some model results already bake an emoji into the verdict string
+    (e.g. "🟢 Routine Screening"), so blindly prefixing `icon` again
+    produced "🟢 🟢 Routine Screening". This checks first.
+    """
+    text = (text or "").strip()
+    icon = (icon or "").strip()
+    if not icon or text.startswith(icon):
+        return text
+    return f"{icon} {text}".strip()
+
+
 CSS = """
 <style>
 /* Main App Background & High Contrast Default Text */
@@ -207,6 +221,9 @@ h1, h2, h3, h4, h5, h6, label, p, span, div, li, td, th {
     font-size: 1.4rem !important;
     font-weight: 800 !important;
     margin-top: 4px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
 }
 
 /* Verdict Boxes */
@@ -333,10 +350,25 @@ div[data-baseweb="input"] input {
 
 /* ============= AI CONFIDENCE + LHV OVERRIDE STYLING ============= */
 .ai-recommendation {
-  background: linear-gradient(135deg, #ff69b4 0%, #ff1493 100%); /* Pink gradient */
+  background: linear-gradient(135deg, #ff69b4 0%, #ff1493 100%); /* default/fallback pink gradient */
   border-radius: 14px; padding: 20px; margin: 12px 0;
   box-shadow: 0 4px 6px rgba(255, 20, 147, 0.2);
   color: #ffffff;
+}
+/* Risk-based color overrides — applied via an extra class based on the
+   real triage result's risk_level, so a BI-RADS 5 case never renders as
+   a green/pink "routine" box again. */
+.ai-recommendation.risk-critical {
+  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%) !important;
+  box-shadow: 0 4px 6px rgba(239, 68, 68, 0.3) !important;
+}
+.ai-recommendation.risk-moderate {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+  box-shadow: 0 4px 6px rgba(245, 158, 11, 0.3) !important;
+}
+.ai-recommendation.risk-low {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3) !important;
 }
 .ai-recommendation .rec-header {
   font-size: 0.9rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
@@ -772,10 +804,26 @@ def run_triage_action(selected_model, uploaded):
         st.session_state.log_entries.append(f"[{time.strftime('%H:%M:%S')}] [Alibaba IoT] Queued - ID: {iot_id} -> Table Store")
         st.session_state.iot_messages.append({"time": time.strftime("%H:%M:%S"), "id": priv_hash, "payload": sms_payload, "iot_id": iot_id})
 
+    # Derive a risk_level ("critical" | "moderate" | "low") the same way the
+    # Dashboard tab does, so the Hospital Hub's AI Recommendation box colors
+    # match reality instead of always defaulting to green/pink.
+    if result["is_critical"]:
+        if "5" in result.get("bi_rads", "") or "4C" in result.get("bi_rads", "") or "POS" in result.get("verdict", ""):
+            risk_level = "critical"
+        else:
+            risk_level = "moderate"
+    else:
+        risk_level = "low"
+
     st.session_state.sms_alerts.insert(0, {
         "time": time.strftime("%H:%M:%S"), "id": priv_hash,
         "type": selected_model.split("(")[0].strip(), "payload": sms_payload,
         "status": "Pending Review", "is_critical": result["is_critical"],
+        # Real inference data (previously missing — Hospital Hub was falling
+        # back to hardcoded defaults like "75.0%" / "Routine Screening"):
+        "confidence": result["confidence"], "verdict": result["verdict"],
+        "vicon": result["vicon"], "localization": result["loc"],
+        "risk_level": risk_level,
     })
     st.rerun()
 
@@ -855,8 +903,17 @@ def render_dashboard(selected_model):
 
         if st.session_state.inference_done and st.session_state.current_result:
             r = st.session_state.current_result
+            model_tile_short = {
+                "Mammography (YOLOv8-OBB)": "Mammo",
+                "Tuberculosis (Chest X-Ray)": "TB X-Ray",
+                "Maternal Health (Ultrasound)": "Maternal US",
+            }
+            # Fall back to a short form if the model name is unrecognized,
+            # never the full "Mammography (YOLOv8-OBB)" string — that's what
+            # was overflowing the tile and wrapping mid-word.
+            model_label = model_tile_short.get(selected_model, selected_model.split("(")[0].strip())
             m1, m2, m3 = st.columns(3)
-            m1.markdown(f'<div class="metric-tile"><div class="label">Model</div><div class="value">{selected_model.split("(")[0].strip()}</div></div>', unsafe_allow_html=True)
+            m1.markdown(f'<div class="metric-tile"><div class="label">Model</div><div class="value" title="{selected_model}">{model_label}</div></div>', unsafe_allow_html=True)
             m2.markdown(f'<div class="metric-tile"><div class="label">{t("Confidence")}</div><div class="value" style="color:{C["primary_light"]};">{r["confidence"]:.1f}%</div></div>', unsafe_allow_html=True)
             m3.markdown(f'<div class="metric-tile"><div class="label">{t("Latency")}</div><div class="value">{st.session_state.inference_latency}s</div></div>', unsafe_allow_html=True)
         else:
@@ -1051,35 +1108,70 @@ def render_hospital_hub():
             st.markdown(f"""<div class="alert-card {css}"><b>Alert #{a['id']}</b> ({a['time']})<br>
             <span style="font-family:Consolas,monospace;font-size:0.8rem;">Payload: {a['payload']}<br>
             Type: {a['type']} &nbsp; Status: {a['status']}</span></div>""", unsafe_allow_html=True)
-            # AI RECOMMENDATION BOX - USE REAL DATA FROM INFERENCE
-            confidence = a.get("confidence", 75)  # Real confidence from model
-            verdict = a.get("verdict", "🟢 Routine Screening")  # Real verdict from model
-            vicon = a.get("vicon", "🟢")  # Real verdict icon
-            localization = a.get("localization", "N/A")  # Real localization
+
+            # AI RECOMMENDATION BOX — real data from inference (populated in
+            # run_triage_action). If an alert is missing these fields, it was
+            # created before this fix (or via Reset Session/old cached data) —
+            # show that plainly instead of a misleading fake-looking default.
+            has_real_data = "confidence" in a and "verdict" in a
+            confidence = a.get("confidence")
+            verdict = a.get("verdict", "")
+            vicon = a.get("vicon", "⚠️")
+            localization = a.get("localization", "N/A")
+            risk_level = a.get("risk_level", "critical" if a["is_critical"] else "low")
+            risk_class = f"risk-{risk_level}" if has_real_data else ""
+
+            if has_real_data:
+                verdict_display = combine_icon_and_text(vicon, verdict)
+                conf_display = f"{confidence:.1f}%"
+            else:
+                verdict_display = "⚠️ No AI data recorded for this alert"
+                conf_display = "N/A"
 
             st.markdown(f"""
-            <div class="ai-recommendation">
+            <div class="ai-recommendation {risk_class}">
                 <div class="rec-header">🤖 AI Recommendation</div>
-                <div class="rec-verdict">{vicon} {verdict}</div>
-                <div class="rec-confidence">Confidence: <b>{confidence:.1f}%</b></div>
+                <div class="rec-verdict">{verdict_display}</div>
+                <div class="rec-confidence">Confidence: <b>{conf_display}</b></div>
                 <div style="font-size: 0.9rem; margin-top: 8px; opacity: 0.95;">Localization: {localization}</div>
             </div>
             """, unsafe_allow_html=True)
+            if not has_real_data:
+                st.caption("This alert predates the real-data fix, or session state was carried over. "
+                           "Use 🔄 Reset Session in the sidebar and run a fresh triage to see live results here.")
 
-            # LHV DECISION BOX
-            col_agree, col_override = st.columns(2)
+            already_approved = a["status"] == "Approved"
+
+            # LHV DECISION + APPROVAL ROW
+            col_agree, col_override, col_approve = st.columns(3)
 
             with col_agree:
-                if st.button(f"✅ Agree", key=f"agree_{alert_id}", use_container_width=True):
+                if st.button("✅ Agree", key=f"agree_{alert_id}", use_container_width=True, disabled=already_approved):
                     st.session_state.lhv_decisions[alert_id]["decision"] = "agree"
                     st.session_state.show_override_reason[alert_id] = False
-                    st.toast(f"👩\u200d⚕️ LHV Decision: Agreed with AI recommendation")
+                    st.toast("👩\u200d⚕️ LHV Decision: Agreed with AI recommendation")
 
             with col_override:
-                if st.button(f"🔄 Override", key=f"override_{alert_id}", use_container_width=True):
+                if st.button("🔄 Override", key=f"override_{alert_id}", use_container_width=True, disabled=already_approved):
                     st.session_state.lhv_decisions[alert_id]["decision"] = "override"
                     st.session_state.show_override_reason[alert_id] = True
                     st.rerun()
+
+            with col_approve:
+                if st.button("📤 Approve", key=f"approve_{alert_id}", use_container_width=True, disabled=already_approved):
+                    a["status"] = "Approved"
+                    st.session_state.log_entries.append(
+                        f"[{time.strftime('%H:%M:%S')}] [REFERRAL] Alert #{a['id']} approved and forwarded to hospital."
+                    )
+                    st.toast("📤 Approved — referral forwarded to hospital.")
+                    st.rerun()
+
+            if already_approved:
+                st.markdown("""
+                <div style="background:#10b98120;border-left:4px solid #10b981;border-radius:8px;padding:12px;margin-top:8px;margin-bottom:12px;">
+                    <b>📤 Status:</b> Approved & forwarded to hospital
+                </div>
+                """, unsafe_allow_html=True)
 
             # Show LHV Decision status
             decision = st.session_state.lhv_decisions[alert_id]["decision"]
