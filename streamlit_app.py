@@ -44,6 +44,63 @@ C = {
     "danger": "#dc2626",
 }
 
+# ============================================================
+# VOICE MESSAGE LIBRARY
+# ------------------------------------------------------------
+# Offline text templates for the Voice Guidance feature (English/Urdu/
+# Punjabi). play_voice_message() is a stub that returns None (no audio
+# bytes) so the UI still renders and functions with text-only fallback.
+# Swap its body for a real offline TTS engine (e.g. Piper) or an online
+# TTS API (e.g. gTTS) when ready — it must keep returning bytes st.audio()
+# can play, or None if unavailable.
+# ============================================================
+VOICE_MESSAGES = {
+    "rescan": {
+        "en": "Image quality too low. Please rescan the patient.",
+        "ur": "تصویر کا معیار کم ہے۔ براہ کرم دوبارہ اسکین کریں۔",
+        "pa": "تصویر دا معیار گھٹ ہے۔ دوبارہ سکین کرو۔",
+    },
+    "escalate": {
+        "en": "Urgent referral required. Please escalate this case.",
+        "ur": "فوری ریفرل ضروری ہے۔ براہ کرم یہ کیس آگے بھیجیں۔",
+        "pa": "فوری ریفرل ضروری ہے۔ کیس اگے بھیجو۔",
+    },
+    "missing_field": {
+        "en": "A required field is missing. Please complete the form.",
+        "ur": "ایک ضروری خانہ خالی ہے۔ فارم مکمل کریں۔",
+        "pa": "اک ضروری خانہ خالی ہے۔ فارم پورا کرو۔",
+    },
+    "success": {
+        "en": "Triage completed successfully.",
+        "ur": "ٹریاج کامیابی سے مکمل ہوگئی۔",
+        "pa": "ٹریاج کامیابی نال مکمل ہوگئی۔",
+    },
+    "sync_success": {
+        "en": "Cloud sync completed successfully.",
+        "ur": "کلاؤڈ سنک کامیابی سے مکمل ہوگئی۔",
+        "pa": "کلاؤڈ سنک کامیابی نال مکمل ہوگئی۔",
+    },
+    "network_error": {
+        "en": "Network connection failed. Working in offline mode.",
+        "ur": "نیٹ ورک کنکشن ناکام ہوگیا۔ آف لائن موڈ میں کام جاری ہے۔",
+        "pa": "نیٹ ورک کنکشن ناکام ہوگیا۔ آف لائن موڈ وچ کم جاری ہے۔",
+    },
+}
+
+
+def play_voice_message(message_key: str, lang: str):
+    """
+    Returns audio bytes suitable for st.audio(), or None if no audio is
+    available (the UI falls back to showing the message text only).
+    Currently a stub with no real TTS engine wired in — plug in Piper
+    (offline) or gTTS (online, needs internet) here later.
+    """
+    # Example for a real implementation with Piper (offline):
+    #   from piper import synthesize
+    #   return synthesize(VOICE_MESSAGES.get(message_key, {}).get(lang, ""))
+    return None
+
+
 CSS = """
 <style>
 /* Main App Background & High Contrast Default Text */
@@ -273,36 +330,37 @@ div[data-baseweb="input"] input {
     border: 1px solid #cbd5e1 !important;
     border-radius: 8px !important;
 }
-* ============= AI CONFIDENCE + LHV OVERRIDE STYLING ============= */
-.ai-recommendation {{ 
+
+/* ============= AI CONFIDENCE + LHV OVERRIDE STYLING ============= */
+.ai-recommendation {
   background: linear-gradient(135deg, #ff69b4 0%, #ff1493 100%); /* Pink gradient */
-  border-radius: 14px; padding: 20px; margin: 12px 0; 
+  border-radius: 14px; padding: 20px; margin: 12px 0;
   box-shadow: 0 4px 6px rgba(255, 20, 147, 0.2);
   color: #ffffff;
-}}
-.ai-recommendation .rec-header {{
+}
+.ai-recommendation .rec-header {
   font-size: 0.9rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
   opacity: 0.95; margin-bottom: 8px;
-}}
-.ai-recommendation .rec-verdict {{
+}
+.ai-recommendation .rec-verdict {
   font-size: 1.4rem; font-weight: 800; margin: 8px 0;
-}}
-.ai-recommendation .rec-confidence {{
+}
+.ai-recommendation .rec-confidence {
   font-size: 0.95rem; margin-top: 12px; opacity: 0.95;
-}}
+}
 
-.lhv-decision {{
+.lhv-decision {
   background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); /* Blue gradient */
   border-radius: 14px; padding: 20px; margin: 12px 0;
   box-shadow: 0 4px 6px rgba(30, 64, 175, 0.2);
   color: #ffffff;
-}}
-.lhv-decision .lhv-header {{
+}
+.lhv-decision .lhv-header {
   font-size: 0.9rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
   opacity: 0.95; margin-bottom: 16px;
-}}
+}
 
-.btn-agree {{
+.btn-agree {
   background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important; /* Green */
   color: #ffffff !important;
   border: none !important;
@@ -313,13 +371,13 @@ div[data-baseweb="input"] input {
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);
-}}
-.btn-agree:hover {{
+}
+.btn-agree:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 12px rgba(16, 185, 129, 0.4);
-}}
+}
 
-.btn-override {{
+.btn-override {
   background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important; /* Red */
   color: #ffffff !important;
   border: none !important;
@@ -330,28 +388,28 @@ div[data-baseweb="input"] input {
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 4px 6px rgba(239, 68, 68, 0.3);
-}}
-.btn-override:hover {{
+}
+.btn-override:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 12px rgba(239, 68, 68, 0.4);
-}}
+}
 
-.override-reason-box {{
+.override-reason-box {
   background: #f0f9ff; /* Light blue background */
   border: 2px solid #3b82f6;
   border-radius: 12px;
   padding: 16px;
   margin-top: 16px;
-}}
-.override-reason-box .reason-title {{
+}
+.override-reason-box .reason-title {
   font-size: 0.95rem;
   font-weight: 700;
   color: #1e40af;
   margin-bottom: 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-}}
-.override-reason-box .reason-option {{
+}
+.override-reason-box .reason-option {
   display: flex;
   align-items: center;
   padding: 10px 0;
@@ -359,25 +417,25 @@ div[data-baseweb="input"] input {
   border-radius: 6px;
   padding: 8px 12px;
   transition: background 0.2s ease;
-}}
-.override-reason-box .reason-option:hover {{
+}
+.override-reason-box .reason-option:hover {
   background: rgba(59, 130, 246, 0.1);
-}}
-.override-reason-box .reason-option input[type="radio"] {{
+}
+.override-reason-box .reason-option input[type="radio"] {
   margin-right: 12px;
   cursor: pointer;
   accent-color: #3b82f6;
   width: 18px;
   height: 18px;
-}}
-.override-reason-box .reason-option label {{
+}
+.override-reason-box .reason-option label {
   cursor: pointer;
   color: #111827;
   font-weight: 500;
   margin: 0;
-}}
+}
 
-.decision-status {{
+.decision-status {
   background: rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   padding: 12px 16px;
@@ -385,19 +443,10 @@ div[data-baseweb="input"] input {
   font-weight: 600;
   text-align: center;
   border: 1px solid rgba(255, 255, 255, 0.3);
-}}
+}
 
-/* Responsive: narrow viewports */
-@media (max-width: 768px) {{
-  .block-container {{ padding-left: 10px !important; padding-right: 10px !important; }}
-  .page-header {{ padding: 16px 18px; }}
-  .page-header h1 {{ font-size: 1.15rem !important; }}
-  .metric-tile .value {{ font-size: 1.1rem; }}
-  .ai-recommendation, .lhv-decision {{ padding: 16px; }}
-  .ai-recommendation .rec-verdict {{ font-size: 1.2rem; }}
-
-  /* ============= VOICE FEEDBACK SYSTEM ============= */
-.voice-feedback-panel {{
+/* ============= VOICE FEEDBACK SYSTEM ============= */
+.voice-feedback-panel {
   background: #ffffff;
   border-radius: 14px;
   padding: 0;
@@ -405,8 +454,8 @@ div[data-baseweb="input"] input {
   box-shadow: 0 4px 8px rgba(255, 20, 147, 0.2);
   color: #111827;
   overflow: hidden;
-}}
-.voice-feedback-panel .vfp-header {{
+}
+.voice-feedback-panel .vfp-header {
   background: linear-gradient(135deg, #ff69b4 0%, #ff1493 100%);
   font-size: 0.95rem;
   font-weight: 700;
@@ -416,8 +465,8 @@ div[data-baseweb="input"] input {
   padding: 16px;
   margin: 0;
   border-bottom: 2px solid rgba(255, 20, 147, 0.2);
-}}
-.voice-feedback-panel .vfp-message {{
+}
+.voice-feedback-panel .vfp-message {
   font-size: 1.05rem;
   font-weight: 600;
   margin: 16px;
@@ -427,14 +476,14 @@ div[data-baseweb="input"] input {
   border-radius: 8px;
   border-left: 4px solid #ff69b4;
   color: #111827;
-}}
-.voice-btn-group {{
+}
+.voice-btn-group {
   display: flex;
   gap: 8px;
   margin: 0 16px 16px 16px;
   flex-wrap: wrap;
-}}
-.voice-btn {{
+}
+.voice-btn {
   background: linear-gradient(135deg, #ff69b4 0%, #ff1493 100%) !important;
   border: none !important;
   color: #ffffff !important;
@@ -445,12 +494,12 @@ div[data-baseweb="input"] input {
   cursor: pointer !important;
   transition: all 0.3s ease !important;
   box-shadow: 0 4px 6px rgba(255, 20, 147, 0.3) !important;
-}}
-.voice-btn:hover {{
+}
+.voice-btn:hover {
   transform: translateY(-2px) !important;
   box-shadow: 0 6px 12px rgba(255, 20, 147, 0.4) !important;
-}}
-.voice-status {{
+}
+.voice-status {
   background: #f0f9ff;
   border-radius: 6px;
   padding: 8px 12px;
@@ -459,15 +508,15 @@ div[data-baseweb="input"] input {
   text-align: center;
   border: 1px solid #bfdbfe;
   color: #1e40af;
-}}
-.audio-player-wrapper {{
+}
+.audio-player-wrapper {
   background: #f5f5f5;
   border-radius: 8px;
   padding: 12px 16px;
   margin: 0 16px 16px 16px;
-}}
+}
 
-.helpya-card {{
+.helpya-card {
   background: #ffffff;
   border-radius: 14px;
   padding: 0;
@@ -475,8 +524,8 @@ div[data-baseweb="input"] input {
   box-shadow: 0 4px 8px rgba(244, 63, 94, 0.2);
   color: #111827;
   overflow: hidden;
-}}
-.helpya-card .helpya-header {{
+}
+.helpya-card .helpya-header {
   background: linear-gradient(135deg, #ff69b4 0%, #ff1493 100%);
   font-size: 1.15rem;
   font-weight: 800;
@@ -489,8 +538,8 @@ div[data-baseweb="input"] input {
   align-items: center;
   gap: 12px;
   border-bottom: 2px solid rgba(255, 20, 147, 0.2);
-}}
-.helpya-stat {{
+}
+.helpya-stat {
   display: inline-block;
   background: linear-gradient(135deg, #fff0f6 0%, #ffe4f0 100%);
   border-radius: 12px;
@@ -499,18 +548,28 @@ div[data-baseweb="input"] input {
   font-weight: 600;
   border: 2px solid #ffb6d9;
   color: #be123c;
-}}
-.helpya-stat .stat-label {{
+}
+.helpya-stat .stat-label {
   font-size: 0.8rem;
   opacity: 0.9;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-}}
-.helpya-stat .stat-value {{
+}
+.helpya-stat .stat-value {
   font-size: 1.6rem;
   font-weight: 800;
   margin-top: 6px;
-}}
+}
+
+/* Responsive: narrow viewports */
+@media (max-width: 768px) {
+  .block-container { padding-left: 10px !important; padding-right: 10px !important; }
+  .page-header { padding: 16px 18px; }
+  .page-header h1 { font-size: 1.15rem !important; }
+  .metric-tile .value { font-size: 1.1rem; }
+  .ai-recommendation, .lhv-decision { padding: 16px; }
+  .ai-recommendation .rec-verdict { font-size: 1.2rem; }
+}
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
@@ -538,8 +597,11 @@ def init_state():
         "inference_latency": 9.4, "bi_rads_selected": None, "acr_density_selected": None,
         "cache_saved": False,
         "lhv_decisions": {}, "show_override_reason": {},
+        # Voice + Help/Feedback panel state (Cloud Sync tab)
         "voice_enabled": True,
-        "helpya_total_sessions": 0, "helpya_successful_diagnosis": 0, "helpya_escalations": 0,
+        "helpya_total_sessions": 0,
+        "helpya_successful_diagnosis": 0,
+        "helpya_escalations": 0,
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -559,9 +621,9 @@ def render_sidebar():
     with st.sidebar:
         st.markdown(
             '<div style="background:linear-gradient(135deg, #ff69b4 0%, #ff1493 100%);border-radius:10px;'
-    'padding:14px;margin-bottom:14px;color:#fff;"><b>🩸 Pink Edge AI</b>'
-    '<div style="font-size:0.72rem;opacity:0.85;">Clinical Intelligence Platform</div></div>',
-    unsafe_allow_html=True)
+            'padding:14px;margin-bottom:14px;color:#fff;"><b>🩸 Pink Edge AI</b>'
+            '<div style="font-size:0.72rem;opacity:0.85;">Clinical Intelligence Platform</div></div>',
+            unsafe_allow_html=True)
         current_role = st.session_state.get("user_role", ROLE_LHW)
         auth_mgr = AuthManager(current_role)
         active_prof = auth_mgr.get_active_profile()
@@ -747,9 +809,6 @@ def sync_cloud_action():
 # ============================================================
 # DASHBOARD TAB
 # ============================================================
-# ============================================================
-# DASHBOARD TAB
-# ============================================================
 def render_dashboard(selected_model):
     # Top Logo Header matching screenshot
     st.markdown("""
@@ -813,7 +872,7 @@ def render_dashboard(selected_model):
         # Triage Result Card matching screenshot layout
         conf_str = f"{r['confidence']:.0f}%" if r else "92%"
         model_source_tag = "Real model" if (r and "SIMULATED" not in r.get("source", "")) else "Real model"
-        
+
         if not r:
             severity_str = "Moderate"
             sev_bg = "#f59e0b"
@@ -844,17 +903,17 @@ def render_dashboard(selected_model):
                 <span style="font-size:1.1rem;font-weight:800;color:#0f172a;">Triage result</span>
                 <span style="background:#fce7f3;color:#be185d;padding:4px 12px;border-radius:20px;font-size:0.75rem;font-weight:700;border:1px solid #fbcfe8;">{model_source_tag}</span>
             </div>
-            
+
             <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f1f5f9;">
                 <span style="color:#64748b;font-size:0.9rem;font-weight:500;">Confidence</span>
                 <span style="color:#0f172a;font-size:1.05rem;font-weight:800;">{conf_str}</span>
             </div>
-            
+
             <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f1f5f9;">
                 <span style="color:#64748b;font-size:0.9rem;font-weight:500;">Severity</span>
                 <span style="background:{sev_bg};color:#ffffff;padding:3px 12px;border-radius:12px;font-size:0.8rem;font-weight:700;">{severity_str}</span>
             </div>
-            
+
             <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;">
                 <span style="color:#64748b;font-size:0.9rem;font-weight:500;">Escalation</span>
                 <span style="color:{escalation_color};font-size:0.95rem;font-weight:700;">{escalation_str}</span>
@@ -895,7 +954,7 @@ def render_dashboard(selected_model):
         if st.session_state.inference_done and st.session_state.current_result:
             r = st.session_state.current_result
             css = r.get("css", "danger" if r["is_critical"] else "success")
-            
+
             # AI Preliminary Result & Clinician Confirmation Badges
             st.markdown("""<div style="display:flex;gap:8px;margin-bottom:8px;">
             <span style="background:#e0f2fe;border:1px solid #7dd3fc;color:#0369a1;padding:3px 10px;border-radius:4px;font-size:0.75rem;font-weight:700;">🤖 AI PRELIMINARY TRIAGE</span>
@@ -907,7 +966,7 @@ def render_dashboard(selected_model):
 
             st.markdown(f"""<div class="verdict-box {css}"><div class="v-icon">{r['vicon']}</div>
             <div class="v-title">{r['verdict']}</div><div class="v-sub">{r['sub']}</div></div>""", unsafe_allow_html=True)
-            
+
             st.markdown(f"""<div class="card"><span class="source-tag">Source: {r.get('source', 'N/A')}</span><br>
             Localization: <b>{r['loc']}</b><br>Classification / Plane: <b>{r['extra']}</b><br>
             Image Quality: <b>{r.get('image_quality', 'Adequate for Analysis')}</b></div>""", unsafe_allow_html=True)
@@ -1075,65 +1134,6 @@ def render_hospital_hub():
 
 
 # ============================================================
-# VOICE MESSAGE LIBRARY  (module-level — used by render_cloud_sync)
-# ============================================================
-VOICE_MESSAGES = {
-    "rescan": {
-        "en": "Please rescan the patient. The image quality is insufficient for diagnosis.",
-        "ur": "براہ کرم مریض کو دوبارہ اسکین کریں۔ تصویر کا معیار تشخیص کے لیے ناکافی ہے۔",
-        "pa": "ਮਰੀਜ਼ ਨੂੰ ਦੁਬਾਰਾ ਸਕੈਨ ਕਰੋ। ਚਿੱਤਰ ਦੀ ਗੁਣਵੱਤਾ ਨਿਦਾਨ ਲਈ ਅਢੁਕਵੀਂ ਹੈ।",
-    },
-    "escalate": {
-        "en": "This case requires immediate escalation to a senior radiologist.",
-        "ur": "اس کیس کو فوری طور پر سینئر ریڈیولوجسٹ کے پاس بھیجنا ضروری ہے۔",
-        "pa": "ਇਸ ਕੇਸ ਨੂੰ ਸੀਨੀਅਰ ਰੇਡੀਓਲੋਜਿਸਟ ਕੋਲ ਤੁਰੰਤ ਭੇਜਣਾ ਜ਼ਰੂਰੀ ਹੈ।",
-    },
-    "missing_field": {
-        "en": "Some required patient information fields are missing. Please complete the form.",
-        "ur": "کچھ ضروری مریض کی معلومات موجود نہیں ہیں۔ براہ کرم فارم مکمل کریں۔",
-        "pa": "ਕੁਝ ਲੋੜੀਂਦੇ ਮਰੀਜ਼ ਦੇ ਵੇਰਵੇ ਗੁੰਮ ਹਨ। ਕਿਰਪਾ ਕਰਕੇ ਫਾਰਮ ਭਰੋ।",
-    },
-    "success": {
-        "en": "Diagnosis complete. Results have been saved and are ready for review.",
-        "ur": "تشخیص مکمل ہو گئی۔ نتائج محفوظ کر لیے گئے ہیں اور جائزے کے لیے تیار ہیں۔",
-        "pa": "ਨਿਦਾਨ ਪੂਰਾ ਹੋ ਗਿਆ। ਨਤੀਜੇ ਸੁਰੱਖਿਅਤ ਕੀਤੇ ਗਏ ਹਨ ਅਤੇ ਸਮੀਖਿਆ ਲਈ ਤਿਆਰ ਹਨ।",
-    },
-    "sync_success": {
-        "en": "Data successfully synced to the cloud. All reports are up to date.",
-        "ur": "ڈیٹا کامیابی سے کلاؤڈ میں محفوظ کر دیا گیا۔ تمام رپورٹس اپ ٹو ڈیٹ ہیں۔",
-        "pa": "ਡੇਟਾ ਸਫਲਤਾਪੂਰਵਕ ਕਲਾਊਡ ਨਾਲ ਸਿੰਕ ਕੀਤਾ ਗਿਆ।",
-    },
-    "network_error": {
-        "en": "Network connection lost. Operating in fully offline mode.",
-        "ur": "نیٹ ورک کنکشن ختم ہو گیا۔ مکمل آف لائن موڈ میں کام جاری ہے۔",
-        "pa": "ਨੈੱਟਵਰਕ ਕੁਨੈਕਸ਼ਨ ਖਤਮ ਹੋ ਗਿਆ। ਪੂਰੀ ਤਰ੍ਹਾਂ ਆਫਲਾਈਨ ਮੋਡ ਵਿੱਚ ਕੰਮ ਜਾਰੀ ਹੈ।",
-    },
-}
-
-
-def play_voice_message(message_key: str, lang: str = "en"):
-    """
-    Returns synthesized audio bytes for the given message key and language.
-    On Streamlit Cloud, gTTS is not guaranteed — falls back to None gracefully.
-    """
-    text = VOICE_MESSAGES.get(message_key, {}).get(lang, "")
-    if not text:
-        return None
-    try:
-        # pyrefly: ignore [missing-import]
-        from gtts import gTTS
-        import io
-        tts = gTTS(text=text, lang=lang if lang in ("en", "ur") else "en")
-        buf = io.BytesIO()
-        tts.write_to_fp(buf)
-        buf.seek(0)
-        return buf.read()
-    except Exception:
-        # gTTS not installed or network unavailable — silent fallback
-        return None
-
-
-# ============================================================
 # CLOUD SYNC TAB
 # ============================================================
 def render_cloud_sync():
@@ -1158,7 +1158,8 @@ def render_cloud_sync():
               "Timestamp": r[11], "Synced": "✅" if r[12] else "⏳"} for r in rows],
             width="stretch", hide_index=True,
         )
-# ============================================================
+
+    # ============================================================
     # HELP & FEEDBACK SECTION (after Cloud Sync)
     # ============================================================
     st.markdown("---")
@@ -1167,40 +1168,43 @@ def render_cloud_sync():
         💬 Help - LHV Feedback & Session Analytics
     </div>
     </div>""", unsafe_allow_html=True)
-    
+
     # ============================================================
     # VOICE MESSAGE MANAGEMENT
     # ============================================================
     st.markdown("---")
     st.markdown("<div style='background: linear-gradient(135deg, #ff69b4 0%, #ff1493 100%); color: white; padding: 12px 16px; border-radius: 8px; margin: 16px 0 12px 0; font-size: 1.2rem; font-weight: 800;'>🎤 Voice Message Library</div>", unsafe_allow_html=True)
-    
+
     voice_mgmt_col1, voice_mgmt_col2 = st.columns([2, 1])
     with voice_mgmt_col1:
         st.markdown("<div style='background: rgba(255, 105, 180, 0.2); color: #ff1493; padding: 8px 12px; border-radius: 6px; margin: 8px 0; font-size: 1rem; font-weight: 700; border-left: 4px solid #ff69b4;'>Pre-recorded voice messages for different scenarios:</div>", unsafe_allow_html=True)
         selected_message = st.selectbox(
             "Select a message to test:",
-            ["rescan", "escalate", "missing_field", "success", "sync_success", "network_error"],
+            list(VOICE_MESSAGES.keys()),
             label_visibility="collapsed"
         )
-    
+
     with voice_mgmt_col2:
+        lang_options = {"en": "🇬🇧 English", "ur": "🇵🇰 Urdu", "pa": "🇵🇅 Punjabi"}
         selected_lang = st.selectbox(
             "Language:",
-            {"🇬🇧 English": "en", "🇵🇰 Urdu": "ur", "🇵🇅 Punjabi": "pa"},
-            format_func=lambda x: x,
+            list(lang_options.keys()),
+            format_func=lambda code: lang_options[code],
             label_visibility="collapsed"
         )
-    
+
     # Display message text
     message_text = VOICE_MESSAGES.get(selected_message, {}).get(selected_lang, "No message found")
     st.info(f"📝 **Message:** {message_text}")
-    
+
     # Test audio player
     test_audio = play_voice_message(selected_message, selected_lang)
     if test_audio:
         st.audio(test_audio, format="audio/wav", sample_rate=22050)
         st.markdown("<small>🔊 Click play to hear the message</small>", unsafe_allow_html=True)
-    
+    else:
+        st.caption("🔇 No audio engine configured yet — showing text only. Wire up play_voice_message() to enable playback.")
+
     # Upload custom voice file
     st.markdown("<div style='background: rgba(255, 105, 180, 0.2); color: #ff1493; padding: 8px 12px; border-radius: 6px; margin: 8px 0; font-size: 1rem; font-weight: 700; border-left: 4px solid #ff69b4;'>Or upload your own audio file:</div>", unsafe_allow_html=True)
     custom_voice_file = st.file_uploader(
@@ -1211,13 +1215,13 @@ def render_cloud_sync():
     if custom_voice_file:
         st.audio(custom_voice_file, format=f"audio/{custom_voice_file.name.split('.')[-1]}")
         st.success(f"✅ Custom audio loaded: {custom_voice_file.name}")
-    
+
     # ============================================================
     # Help Metrics Row
     # ============================================================
     st.markdown("---")
     hfb_col1, hfb_col2, hfb_col3 = st.columns(3)
-    
+
     with hfb_col1:
         st.markdown(f"""
         <div class="helpya-stat">
@@ -1225,7 +1229,7 @@ def render_cloud_sync():
             <div class="stat-value">{st.session_state.get('helpya_total_sessions', 0)}</div>
         </div>
         """, unsafe_allow_html=True)
-    
+
     with hfb_col2:
         st.markdown(f"""
         <div class="helpya-stat">
@@ -1233,7 +1237,7 @@ def render_cloud_sync():
             <div class="stat-value">{st.session_state.get('helpya_successful_diagnosis', 0)}</div>
         </div>
         """, unsafe_allow_html=True)
-    
+
     with hfb_col3:
         st.markdown(f"""
         <div class="helpya-stat">
@@ -1241,29 +1245,29 @@ def render_cloud_sync():
             <div class="stat-value">{st.session_state.get('helpya_escalations', 0)}</div>
         </div>
         """, unsafe_allow_html=True)
-    
+
     # Session Feedback Form
     st.markdown("<div style='background: linear-gradient(135deg, #ff69b4 0%, #ff1493 100%); color: white; padding: 12px 16px; border-radius: 8px; margin: 16px 0 12px 0; font-size: 1.2rem; font-weight: 800;'>📝 Session Feedback & Quality Check</div>", unsafe_allow_html=True)
-    
+
     feedback_col1, feedback_col2 = st.columns([1, 1])
-    
+
     with feedback_col1:
         feedback_rating = st.slider(
             "Rate this diagnostic session:",
             min_value=1, max_value=5, value=3,
             help="How was your experience with this session?"
         )
-        
+
         # Rating display with emojis
         rating_display = "⭐" * feedback_rating + "☆" * (5 - feedback_rating)
         st.markdown(f"<div style='text-align:center;font-size:1.2rem;margin:8px 0;'>{rating_display}</div>", unsafe_allow_html=True)
-    
+
     with feedback_col2:
         feedback_category = st.selectbox(
             "Session Type:",
             ["✅ Successful Diagnosis", "⚠️ Needs Review", "🔄 Reanalysis", "⬆️ Escalation"]
         )
-    
+
     # Detailed Feedback
     st.markdown("<div style='background: rgba(255, 105, 180, 0.2); color: #ff1493; padding: 8px 12px; border-radius: 6px; margin: 8px 0; font-size: 1rem; font-weight: 700; border-left: 4px solid #ff69b4;'>Your Feedback:</div>", unsafe_allow_html=True)
     feedback_text = st.text_area(
@@ -1272,12 +1276,12 @@ def render_cloud_sync():
         height=100,
         label_visibility="collapsed"
     )
-    
+
     # Voice Feedback Option
     voice_feedback_col1, voice_feedback_col2 = st.columns(2)
     with voice_feedback_col1:
         enable_voice_feedback = st.checkbox("🎤 Enable voice feedback confirmation")
-    
+
     with voice_feedback_col2:
         lang_feedback = st.radio(
             "Feedback Language:",
@@ -1285,61 +1289,61 @@ def render_cloud_sync():
             horizontal=True,
             label_visibility="collapsed"
         )
-    
+
     # Submit Feedback Button
     submit_col1, submit_col2 = st.columns([2, 1])
-    
+
     with submit_col1:
         if st.button("📤 Submit Feedback & Rate Session", use_container_width=True):
             if feedback_text.strip():
                 # Update metrics
                 st.session_state.helpya_total_sessions += 1
-                
+
                 if "Successful" in feedback_category:
                     st.session_state.helpya_successful_diagnosis += 1
                 elif "Escalation" in feedback_category:
                     st.session_state.helpya_escalations += 1
-                
+
                 # Success notification
                 st.success(f"✅ Feedback submitted! Rating: {rating_display}")
-                
+
                 # Voice confirmation if enabled
                 if enable_voice_feedback and st.session_state.voice_enabled:
                     lang_code = "ur" if "اردو" in lang_feedback else "en"
                     confirmation_text = "آپ کی رائے ریکارڈ کی گئی۔ شکریہ!" if lang_code == "ur" else "Your feedback has been recorded. Thank you!"
                     st.info(f"🎤 Voice Feedback: {confirmation_text}")
-                
+
                 # Log to session
                 st.session_state.log_entries.append(
                     f"[{time.strftime('%H:%M:%S')}] [HELPYA] Session rated {feedback_rating}★ - {feedback_category}"
                 )
             else:
                 st.warning("⚠️ Please enter your feedback before submitting.")
-    
+
     with submit_col2:
         if st.button("🔄 Clear Form", use_container_width=True):
             st.rerun()
-    
+
     # Today's Summary Panel
     st.markdown("---")
     st.markdown("<div style='background: linear-gradient(135deg, #ff69b4 0%, #ff1493 100%); color: white; padding: 12px 16px; border-radius: 8px; margin: 16px 0 12px 0; font-size: 1.2rem; font-weight: 800;'>📊 Today's Diagnostic Summary</div>", unsafe_allow_html=True)
-    
+
     summary_col1, summary_col2, summary_col3 = st.columns(3)
-    
+
     with summary_col1:
         st.metric(
             "🩺 Alerts Processed",
             len(st.session_state.sms_alerts),
             delta="New alerts" if len(st.session_state.sms_alerts) > 0 else "No alerts"
         )
-    
+
     with summary_col2:
         st.metric(
             "💾 Reports Cached",
             total,
             delta=f"{unsynced} pending sync" if unsynced > 0 else "All synced"
         )
-    
+
     with summary_col3:
         sync_rate = ((total - unsynced) / total * 100) if total > 0 else 0
         st.metric(
@@ -1347,47 +1351,47 @@ def render_cloud_sync():
             f"{sync_rate:.0f}%",
             delta="Optimal" if sync_rate == 100 else "Syncing..."
         )
-    
+
     # System Status Panel
     st.markdown("---")
     status_col1, status_col2 = st.columns(2)
-    
+
     with status_col1:
         st.info(f"""
-        **🎤 Voice System:** {'🟢 ENABLED' if st.session_state.voice_enabled else '🔴 DISABLED'}  
-        **🌐 Language:** {'🇵🇰 Urdu (اردو)' if st.session_state.urdu_mode else '🇬🇧 English'}  
-        **📡 Network:** {st.session_state.net_stats['module']}  
+        **🎤 Voice System:** {'🟢 ENABLED' if st.session_state.voice_enabled else '🔴 DISABLED'}
+        **🌐 Language:** {'🇵🇰 Urdu (اردو)' if st.session_state.urdu_mode else '🇬🇧 English'}
+        **📡 Network:** {st.session_state.net_stats['module']}
         **📶 Signal:** {st.session_state.net_stats['signal']}
         """)
-    
+
     with status_col2:
         st.success(f"""
-        **✅ System Status:** Operational  
-        **🔐 Data Encryption:** Active  
-        **📊 LHV Sessions:** {st.session_state.get('helpya_total_sessions', 0)}  
+        **✅ System Status:** Operational
+        **🔐 Data Encryption:** Active
+        **📊 LHV Sessions:** {st.session_state.get('helpya_total_sessions', 0)}
         **⏱️ Session Time:** {st.session_state.inference_latency}s avg
         """)
-    
+
     # Quick Actions
     st.markdown("---")
     st.markdown("<div style='background: linear-gradient(135deg, #ff69b4 0%, #ff1493 100%); color: white; padding: 12px 16px; border-radius: 8px; margin: 16px 0 12px 0; font-size: 1.2rem; font-weight: 800;'>⚡ Quick Actions</div>", unsafe_allow_html=True)
-    
+
     action_col1, action_col2, action_col3, action_col4 = st.columns(4)
-    
+
     with action_col1:
         if st.button("🔊 Test Voice", use_container_width=True):
             st.info("🎤 Voice system test: System is functional and ready for use.")
             st.session_state.voice_enabled = True
-    
+
     with action_col2:
         if st.button("📥 Download Report", use_container_width=True):
             st.success("✅ Report download initiated")
-    
+
     with action_col3:
         if st.button("🌐 Switch Language", use_container_width=True):
             st.session_state.urdu_mode = not st.session_state.urdu_mode
             st.rerun()
-    
+
     with action_col4:
         if st.button("🔄 Sync Now", use_container_width=True):
             st.success("✅ Cloud sync initiated")
