@@ -132,6 +132,37 @@ def html_block(s: str) -> str:
     return "\n".join(line.strip() for line in s.strip("\n").splitlines())
 
 
+# ------------------------------------------------------------
+# GLOBAL FIX: auto-dedent every st.markdown(..., unsafe_allow_html=True)
+# ------------------------------------------------------------
+# html_block() above only helps at call sites that actually use it — and
+# none of them did. Several st.markdown(f"""<div ...>...""",
+# unsafe_allow_html=True) calls inside render_dashboard / render_hospital_hub
+# / render_cloud_sync are written inside nested functions/if-blocks, so
+# their f-strings inherit 8+ spaces of Python indentation. Streamlit's
+# Markdown renderer follows CommonMark, where any line indented 4+ spaces is
+# treated as a literal "indented code block" and rendered as raw text
+# (tags and all, complete with the copy-icon Streamlit shows on code
+# blocks) even with unsafe_allow_html=True. That's exactly the bug in the
+# screenshots (the "Triage result" card, the DICOM Metadata card, etc.
+# showing raw <div style="..."> text instead of styled HTML).
+#
+# Instead of manually hunting down and wrapping every individual call site
+# (error-prone — miss one and it breaks again on a different card later),
+# patch st.markdown once so ANY html string passed with
+# unsafe_allow_html=True gets dedented automatically, no matter how deeply
+# nested the call site is.
+_original_markdown = st.markdown
+
+
+def _dedented_markdown(body, *args, **kwargs):
+    if kwargs.get("unsafe_allow_html") and isinstance(body, str) and "\n" in body:
+        body = html_block(body)
+    return _original_markdown(body, *args, **kwargs)
+
+
+st.markdown = _dedented_markdown
+
 CSS = """
 <style>
 /* Main App Background & High Contrast Default Text */
