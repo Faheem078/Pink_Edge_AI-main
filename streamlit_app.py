@@ -789,7 +789,7 @@ def render_dashboard(selected_model):
             display = core.draw_bbox(img, selected_model, st.session_state.current_result)
         else:
             display = img
-        st.image(display, use_column_width=True, caption=st.session_state.uploaded_name or "Generated Scan Placeholder")
+        st.image(display, use_container_width=True, caption=st.session_state.uploaded_name or "Generated Scan Placeholder")
 
         if st.session_state.inference_done and st.session_state.current_result:
             r = st.session_state.current_result
