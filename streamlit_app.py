@@ -537,6 +537,7 @@ def init_state():
         "sms_alerts": [], "iot_messages": [], "oss_uploads": [], "acr_status": None,
         "inference_latency": 9.4, "bi_rads_selected": None, "acr_density_selected": None,
         "cache_saved": False,
+        "lhv_decisions": {}, "show_override_reason": {},
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -978,16 +979,23 @@ def render_hospital_hub():
         if not st.session_state.sms_alerts:
             st.markdown('<div class="card" style="text-align:center;padding:30px;">✅ All Clear — no alerts pending</div>', unsafe_allow_html=True)
         for a in st.session_state.sms_alerts:
+            alert_id = a["id"]  # define alert_id from the current alert dict
+            # Ensure per-alert state keys exist
+            if alert_id not in st.session_state.lhv_decisions:
+                st.session_state.lhv_decisions[alert_id] = {"decision": None, "reason": None}
+            if alert_id not in st.session_state.show_override_reason:
+                st.session_state.show_override_reason[alert_id] = False
+
             css = "critical" if a["is_critical"] else "ok"
             st.markdown(f"""<div class="alert-card {css}"><b>Alert #{a['id']}</b> ({a['time']})<br>
             <span style="font-family:Consolas,monospace;font-size:0.8rem;">Payload: {a['payload']}<br>
             Type: {a['type']} &nbsp; Status: {a['status']}</span></div>""", unsafe_allow_html=True)
-# AI RECOMMENDATION BOX - USE REAL DATA FROM INFERENCE
+            # AI RECOMMENDATION BOX - USE REAL DATA FROM INFERENCE
             confidence = a.get("confidence", 75)  # Real confidence from model
             verdict = a.get("verdict", "🟢 Routine Screening")  # Real verdict from model
             vicon = a.get("vicon", "🟢")  # Real verdict icon
             localization = a.get("localization", "N/A")  # Real localization
-            
+
             st.markdown(f"""
             <div class="ai-recommendation">
                 <div class="rec-header">🤖 AI Recommendation</div>
@@ -996,22 +1004,22 @@ def render_hospital_hub():
                 <div style="font-size: 0.9rem; margin-top: 8px; opacity: 0.95;">Localization: {localization}</div>
             </div>
             """, unsafe_allow_html=True)
-            
+
             # LHV DECISION BOX
             col_agree, col_override = st.columns(2)
-            
+
             with col_agree:
                 if st.button(f"✅ Agree", key=f"agree_{alert_id}", use_container_width=True):
                     st.session_state.lhv_decisions[alert_id]["decision"] = "agree"
                     st.session_state.show_override_reason[alert_id] = False
-                    st.toast(f"👩‍⚕️ LHV Decision: Agreed with AI recommendation")
-            
+                    st.toast(f"👩\u200d⚕️ LHV Decision: Agreed with AI recommendation")
+
             with col_override:
                 if st.button(f"🔄 Override", key=f"override_{alert_id}", use_container_width=True):
                     st.session_state.lhv_decisions[alert_id]["decision"] = "override"
                     st.session_state.show_override_reason[alert_id] = True
                     st.rerun()
-            
+
             # Show LHV Decision status
             decision = st.session_state.lhv_decisions[alert_id]["decision"]
             if decision:
@@ -1019,10 +1027,10 @@ def render_hospital_hub():
                 status_color = "#10b981" if decision == "agree" else "#ef4444"
                 st.markdown(f"""
                 <div style="background: {status_color}20; border-left: 4px solid {status_color}; border-radius: 8px; padding: 12px; margin-top: 8px; margin-bottom: 12px;">
-                    <b>👩‍⚕️ LHV Decision:</b> {status_text}
+                    <b>👩\u200d⚕️ LHV Decision:</b> {status_text}
                 </div>
                 """, unsafe_allow_html=True)
-            
+
             # OVERRIDE REASON BOX (shown only when Override is selected)
             if st.session_state.show_override_reason[alert_id] and st.session_state.lhv_decisions[alert_id]["decision"] == "override":
                 st.markdown("""
@@ -1030,23 +1038,23 @@ def render_hospital_hub():
                     <div class="reason-title">📋 Reason for Override</div>
                 </div>
                 """, unsafe_allow_html=True)
-                
+
                 reason_options = [
                     "👤 Patient History",
                     "📸 Image Quality",
                     "🔬 Clinical Symptoms",
                     "❓ Other"
                 ]
-                
+
                 selected_reason = st.radio(
                     "Select reason for override:",
                     reason_options,
                     key=f"reason_{alert_id}",
                     label_visibility="collapsed"
                 )
-                
+
                 st.session_state.lhv_decisions[alert_id]["reason"] = selected_reason
-                
+
                 # If "Other" is selected, allow custom text input
                 if "Other" in selected_reason:
                     custom_reason = st.text_input(
@@ -1055,12 +1063,12 @@ def render_hospital_hub():
                         placeholder="Enter additional details..."
                     )
                     st.session_state.lhv_decisions[alert_id]["reason"] = f"Other: {custom_reason}"
-                
+
                 # Confirmation button
                 if st.button(f"✓ Confirm Override", key=f"confirm_override_{alert_id}", use_container_width=True):
                     st.toast(f"✅ Override confirmed. Reason: {st.session_state.lhv_decisions[alert_id]['reason']}")
                     st.session_state.show_override_reason[alert_id] = False
-            
+
             st.markdown("---")
 
 
