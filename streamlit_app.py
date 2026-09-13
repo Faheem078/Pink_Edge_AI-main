@@ -115,6 +115,23 @@ def combine_icon_and_text(icon: str, text: str) -> str:
     return f"{icon} {text}".strip()
 
 
+def html_block(s: str) -> str:
+    """
+    Strips per-line leading/trailing whitespace from a multi-line HTML
+    string built with an indented Python f-string.
+
+    Why this matters: Streamlit's markdown renderer follows CommonMark,
+    where any line indented 4+ spaces is treated as a literal "indented
+    code block" — rendered as raw monospace text, HTML tags and all,
+    even with unsafe_allow_html=True. Since our HTML strings are written
+    inside nested functions/if-blocks, every line naturally inherits 8+
+    spaces of Python indentation, which was silently triggering this
+    exact bug. Wrap any multi-line HTML f-string passed to st.markdown
+    with this function to avoid it.
+    """
+    return "\n".join(line.strip() for line in s.strip("\n").splitlines())
+
+
 CSS = """
 <style>
 /* Main App Background & High Contrast Default Text */
