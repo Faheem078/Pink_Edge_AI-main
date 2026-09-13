@@ -170,6 +170,7 @@ CSS = """
     background-color: #f8fafc !important;
     color: #0f172a !important;
     font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+    margin-bottom: 20px;
 }
 
 /* Sidebar Styling */
