@@ -160,12 +160,12 @@ def html_block(s: str) -> str:
 # because on a later rerun it may already be our patched function, which
 # creates infinite recursion. Calling DeltaGenerator.markdown directly always
 # reaches Streamlit's real implementation.
-from streamlit.delta_generator import DeltaGenerator
-
+# Use Streamlit's internal main DeltaGenerator directly.
+# This avoids calling the patched st.markdown again on reruns.
 def _dedented_markdown(body, *args, **kwargs):
-    if kwargs.get('unsafe_allow_html') and isinstance(body, str) and '\n' in body:
+    if kwargs.get("unsafe_allow_html") and isinstance(body, str) and "\n" in body:
         body = html_block(body)
-    return DeltaGenerator.markdown(st, body, *args, **kwargs)
+    return st._main.markdown(body, *args, **kwargs)
 
 st.markdown = _dedented_markdown
 
