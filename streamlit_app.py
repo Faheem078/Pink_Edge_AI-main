@@ -152,14 +152,20 @@ def html_block(s: str) -> str:
 # patch st.markdown once so ANY html string passed with
 # unsafe_allow_html=True gets dedented automatically, no matter how deeply
 # nested the call site is.
-_original_markdown = st.markdown
 
+# ------------------------------------------------------------
+# GLOBAL FIX: auto-dedent HTML passed to st.markdown
+# ------------------------------------------------------------
+# IMPORTANT: Streamlit reruns this script. Do not capture st.markdown here,
+# because on a later rerun it may already be our patched function, which
+# creates infinite recursion. Calling DeltaGenerator.markdown directly always
+# reaches Streamlit's real implementation.
+from streamlit.delta_generator import DeltaGenerator
 
 def _dedented_markdown(body, *args, **kwargs):
-    if kwargs.get("unsafe_allow_html") and isinstance(body, str) and "\n" in body:
+    if kwargs.get('unsafe_allow_html') and isinstance(body, str) and '\n' in body:
         body = html_block(body)
-    return _original_markdown(body, *args, **kwargs)
-
+    return DeltaGenerator.markdown(st, body, *args, **kwargs)
 
 st.markdown = _dedented_markdown
 
